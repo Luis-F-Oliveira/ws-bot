@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/node": "^20.12.7",
     "axios": "^1.6.8"
   }
 }

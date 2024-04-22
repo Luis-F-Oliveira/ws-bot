@@ -1,3 +1,5 @@
+import CommandService from "../services/commadService"
+
 export interface ICommands {
     id: number
     name: string
@@ -18,14 +20,36 @@ interface ISector {
  */
 export default class Command
 {
-    private commands: ICommands[]
+    private commands: CommandService
 
     /**
-     * Inicia uma busca nos dados do servidor
+     * Inicia a classe já instanciando um CommandService
      */
     constructor()
     {
+        this.commands = new CommandService()
+    }
 
-        this.commands = commands
+    /**
+     * Pesquisa e devolve uma promise com um array de comandos
+     * 
+     * @param token: String
+     * @return ICommands[]
+     */
+    getIndex(token: string)
+    {
+        //
+    }
+
+    /**
+     * Pesquisa e devolve uma promise com um array de comandos especificos
+     * 
+     * @param token: String
+     * @param id: String
+     * @return ICommands[]
+     */
+    getShow(token: string, id: string)
+    {
+        //
     }
 }
