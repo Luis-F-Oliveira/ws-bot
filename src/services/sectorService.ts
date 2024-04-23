@@ -1,3 +1,4 @@
+import Authenticate from "../class/authenticate"
 import { ISector } from "../class/sectors"
 import { api } from "./axios"
 
@@ -14,12 +15,13 @@ export default class SectorService
     /**
      * Função para coleta de um array de setores e retorno em promise
      * 
-     * @param token String
      * @returns success: boolean, data?: ISector[]
      */
-    index(token: string): Promise<SectorServiceProps>
+    index(): Promise<SectorServiceProps>
     {
         return new Promise(async (resolve, reject) => {
+            const token = Authenticate.getInstance().getToken()
+
             await api.get('sectors', {
                 headers: {
                     'Authorization': `Bearer ${token}`

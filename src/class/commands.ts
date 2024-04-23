@@ -1,4 +1,4 @@
-import CommandService from "../services/commadService"
+import CommandService from "../services/commandService"
 
 export interface ICommands {
     id: number
@@ -33,10 +33,24 @@ export default class Command
     /**
      * Pesquisa e devolve uma promise com um array de comandos
      * 
-     * @param token: String
+     * @param sector: String
      * @return ICommands[]
      */
-    getIndex(token: string)
+    async getStart(sector: string)
+    {
+        const response = await this.commands.start(sector)
+
+        if (response.success) {
+            return response.data
+        }
+    }
+
+    /**
+     * Pesquisa e devolve uma promise com um array de comandos
+     * 
+     * @return ICommands[]
+     */
+    async getIndex()
     {
         //
     }
@@ -44,11 +58,10 @@ export default class Command
     /**
      * Pesquisa e devolve uma promise com um array de comandos especificos
      * 
-     * @param token: String
      * @param id: String
      * @return ICommands[]
      */
-    getShow(token: string, id: string)
+    async getShow(id: string)
     {
         //
     }

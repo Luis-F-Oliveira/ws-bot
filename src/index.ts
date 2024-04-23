@@ -1,39 +1,18 @@
+import Operations from "./class/operations"
 import Authenticate from "./class/authenticate"
-import Sector from "./class/sectors"
 import { openAccountJson } from "./function/openAccountJson"
 import AuthenticateService from "./services/authenticateService"
+import Sector from "./class/sectors"
 
 /**
  * Classe principal do WSBOT
  */
 class WSBOT {
-    private auth: Authenticate | null = null
-
     /**
-     * Função main, responsável por rodar todo o script do WSBOT
+     * Primeira mensagem exibida ao iniciar uma conversa
      */
-    async main() {
-        //#region ========= Autenticação =========
-        // Para obter mais informações sobre a autenticação, consulte a seção "Autenticação" no arquivo README.
-
-        const account = await openAccountJson('./json/account.json')
-        const authenticateService = new AuthenticateService()
-
-        const response = await authenticateService.login(account)
-
-        if (response.success && response.token) {
-            this.auth = new Authenticate({ token: response.token })
-        }
-
-        //#endregion
-
-        //#region ========= Iniciar BOT =========
-        // Para obter mais informações sobre o inicio do bot, consulte a seção "Iniciar BOT" no arquivo README.
-
-        // Depois adicionar o sistema de ligar o whatsapp-web.js
-
-        //#region ========= Mensagem de Boas Vindas =========
-
+    welcome()
+    {
         let welcomeMessage: string = ''
 
         const data = new Date()
@@ -48,19 +27,33 @@ class WSBOT {
         }
 
         welcomeMessage = `${welcomeMessage} Eu sou um`
+    }
 
-        //#endregion
+    /**
+     * Função main, responsável por rodar todo o script do WSBOT
+     */
+    async main() {
+        const account = await openAccountJson('./json/account.json')
+        const authenticateService = new AuthenticateService()
+        const operations = new Operations()
+        const sector = new Sector()
 
-        //#region ========= Perguntas =========
-
-        if (this.auth) {
-            const sector = new Sector()
-            const sectors = await sector.getIndex(this.auth.getToken())
+        const response = await authenticateService.login(account)
+        if (response.success) {
+            const tokenService = Authenticate.getInstance()
+            tokenService.setToken(response.token)
         }
 
-        //#endregion
+        let sectorsMessage: string = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus orci massa, sagittis at quam eget, sodales tempor augue. Nam sit amet fringilla justo. Cras nec orci posuere, fermentum ligula a, tristique elit. Morbi ultrices scelerisque dui ut porta. Vestibulum tincidunt neque vitae nulla finibus, eu dictum sem pharetra. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nunc nec eros gravida, porta purus pharetra, varius augue. Aenean fermentum quis tortor ut scelerisque. Suspendisse pharetra faucibus porta. Sed sed scelerisque nisi. Proin imperdiet in quam a bibendum. Quisque ut gravida magna. Suspendisse ultricies condimentum volutpat. Suspendisse fringilla consectetur velit quis tristique. Mauris malesuada gravida est id mollis. \n\n'
 
-        //#endregion
+        const sectors = await sector.getIndex()
+        if (sectors) {
+            sectors.forEach((item, index) => {
+                sectorsMessage += `\n${index+1}° ${item.name}`
+            })
+        }
+
+        console.log(sectorsMessage)
     }
 }
 

@@ -23,12 +23,11 @@ export default class Sector
     /**
      * Pesquisa e devolve uma promise com um array de sectors
      * 
-     * @param token: String
      * @return ISector[]
      */
-    async getIndex(token: string)
+    async getIndex()
     {
-        const response = await this.sectors.index(token)
+        const response = await this.sectors.index()
 
         if (response.success && response.data) {
             return response.data
