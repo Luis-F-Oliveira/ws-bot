@@ -32,7 +32,8 @@ class WSBOT {
     /**
      * Função main, responsável por rodar todo o script do WSBOT
      */
-    async main() {
+    async main() 
+    {
         const account = await openAccountJson('./json/account.json')
         const authenticateService = new AuthenticateService()
         const operations = new Operations()
@@ -44,16 +45,20 @@ class WSBOT {
             tokenService.setToken(response.token)
         }
 
-        let sectorsMessage: string = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus orci massa, sagittis at quam eget, sodales tempor augue. Nam sit amet fringilla justo. Cras nec orci posuere, fermentum ligula a, tristique elit. Morbi ultrices scelerisque dui ut porta. Vestibulum tincidunt neque vitae nulla finibus, eu dictum sem pharetra. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nunc nec eros gravida, porta purus pharetra, varius augue. Aenean fermentum quis tortor ut scelerisque. Suspendisse pharetra faucibus porta. Sed sed scelerisque nisi. Proin imperdiet in quam a bibendum. Quisque ut gravida magna. Suspendisse ultricies condimentum volutpat. Suspendisse fringilla consectetur velit quis tristique. Mauris malesuada gravida est id mollis. \n\n'
+        let sectorsMessage = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus orci massa, sagittis at quam eget, sodales tempor augue. Nam sit amet fringilla justo. Cras nec orci posuere, fermentum ligula a, tristique elit. Morbi ultrices scelerisque dui ut porta. Vestibulum tincidunt neque vitae nulla finibus, eu dictum sem pharetra. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nunc nec eros gravida, porta purus pharetra, varius augue. Aenean fermentum quis tortor ut scelerisque. Suspendisse pharetra faucibus porta. Sed sed scelerisque nisi. Proin imperdiet in quam a bibendum. Quisque ut gravida magna. \n\n'
+        let coice = 1
 
         const sectors = await sector.getIndex()
         if (sectors) {
             sectors.forEach((item, index) => {
                 sectorsMessage += `\n${index+1}° ${item.name}`
             })
-        }
 
-        console.log(sectorsMessage)
+            const chosenSector = sectors[coice - 1]
+            const chosenSectorId = chosenSector.id
+
+            console.log(await operations.start(chosenSectorId.toString()))
+        }
     }
 }
 

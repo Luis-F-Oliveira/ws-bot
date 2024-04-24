@@ -20,12 +20,20 @@ export default class Operations
     /**
      * Inicia conversa a partir com o setor selecionado
      * 
-     * @return void
+     * @return string
      */
     async start(sector: string)
     {
+        // let startMessage = '{name}\n{return}\n\nMais opções:\n'
+        let startMessage = ''
         const commands = await this.commands.getStart(sector)
-        console.log(commands)
+        commands?.forEach((item, index) => {
+            startMessage += `${item.name}\n`
+            startMessage += `${item.return}\n\nMais opções:\n`
+            item.replies
+        })
+
+        return startMessage
     }
 
     /**
