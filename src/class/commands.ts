@@ -63,6 +63,10 @@ export default class Command
      */
     async getShow(id: string)
     {
-        //
+        const response = await this.commands.show(id)
+
+        if (response.success) {
+            return response.data
+        }
     }
 }

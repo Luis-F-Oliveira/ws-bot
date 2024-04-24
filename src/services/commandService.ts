@@ -12,6 +12,16 @@ interface CommandServiceProps {
  */
 export default class CommandService
 {
+    private token: string
+
+    /**
+     * Inicia o token
+     */
+    constructor()
+    {
+        this.token = Authenticate.getInstance().getToken()
+    }
+
     /**
      * Função para a coleta de um array referenciando o setor e retorno em promise
      * 
@@ -21,10 +31,9 @@ export default class CommandService
     start(sector: string): Promise<CommandServiceProps>
     {
         return new Promise(async (resolve, reject) => {
-            const token = Authenticate.getInstance().getToken()
             await api.get(`commands/start/${sector}`, {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${this.token}`
                 }
             })
             .then((response) => {
@@ -37,29 +46,25 @@ export default class CommandService
     }
 
     /**
-     * Função para coleta de um array de comandos e retorno em promise
-     * 
-     * @param token String
-     * @returns success: boolean, data?: ICommands[]
-     */
-    index(token: string): Promise<CommandServiceProps>
-    {
-        return new Promise(async (resolve, reject) => {
-            console.log('Index')
-        })
-    }
-
-    /**
      * Função para coleta de um array especifico e retorno em promise
      * 
-     * @param token String
      * @param id String
      * @returns success: boolean, data?: ICommands[]
      */
-    show(token: string, id: string): Promise<CommandServiceProps>
+    show(id: string): Promise<CommandServiceProps>
     {
         return new Promise(async (resolve, reject) => {
-            console.log('Show')
+            await api.get(`commands/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            })
+            .then((response) => {
+                resolve({ success: true, data: response.data })
+            })
+            .catch((error) => {
+                reject(error)
+            })
         })
     }
 }
