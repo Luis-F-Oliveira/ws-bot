@@ -40,8 +40,9 @@ class WSBOT {
 
         const response = await authenticateService.login(account)
         if (response.success) {
-            const tokenService = Authenticate.getInstance()
-            tokenService.setToken(response.token)
+            const auth = Authenticate.getInstance()
+            auth.setToken(response.token)
+            auth.setUser(response.user)
         }
 
         let sectorsMessage = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus orci massa, sagittis at quam eget, sodales tempor augue. Nam sit amet fringilla justo. Cras nec orci posuere, fermentum ligula a, tristique elit. Morbi ultrices scelerisque dui ut porta. Vestibulum tincidunt neque vitae nulla finibus, eu dictum sem pharetra. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nunc nec eros gravida, porta purus pharetra, varius augue. Aenean fermentum quis tortor ut scelerisque. Suspendisse pharetra faucibus porta. Sed sed scelerisque nisi. Proin imperdiet in quam a bibendum. Quisque ut gravida magna. \n\n'
@@ -59,7 +60,11 @@ class WSBOT {
 
             const operations = new Operations({ sector: chosenSectorId.toString() })
             
-             
+            console.log(await operations.access('3'))
+            console.log(await operations.access('1'))
+            console.log(await operations.access('2'))
+            console.log(await operations.previous())
+            console.log(await operations.access('1'))
         }
     }
 }

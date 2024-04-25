@@ -1,4 +1,6 @@
-import Command, { ICommands } from "./commands"
+import Authenticate, { IUser } from "./authenticate"
+import Command from "./commands"
+import Commit from "./commit"
 
 interface IOperationsParams {
     sector: string
@@ -10,8 +12,11 @@ interface IOperationsParams {
 export default class Operations
 {
     private id: Array<string>
+    private history: Array<string>
     private sector: string
     private commands: Command
+    private user: IUser
+    private commit: Commit
 
     /**
      * @param params IOperationsParams
@@ -19,8 +24,11 @@ export default class Operations
     constructor(params: IOperationsParams)
     {
         this.commands = new Command()
+        this.commit = new Commit()
         this.sector = params.sector
         this.id = []
+        this.history = []
+        this.user = Authenticate.getInstance().getUser()
     }
 
     /**
@@ -33,41 +41,71 @@ export default class Operations
         let startMessage = 'Lista de perguntas:\n'
         const commands = await this.commands.getStart(this.sector)
         commands?.forEach((item, index) => {
-            startMessage += `${index+1}° ${item.name}\n`
+            startMessage += `\n${index+1}° ${item.name}`
         })
 
         return startMessage
     }
 
     /**
+     * Retorna uma mensagem padrão de erro caso a pessoa digite um valor inválido
+     * 
+     * @return String
+     */
+    invalidMessage()
+    {
+        return 'Pergunta inválido, tente novamente.'
+    }
+
+    /**
+     * Método responsavel para o salvamento das perguntas dentro do banco de dados
+     * 
+     * @return void
+     */
+    async storeCommand()
+    {
+        const data = { user_id: this.user.id, command_id: parseInt(this.id[this.id.length - 1]), sector_id: parseInt(this.sector) }
+        await this.commit.store(data)
+    }
+
+    /**
      * Acessa a pergunta que foi selecionada enviando o id
      * 
      * @param choice String
-     * @return String
+     * @return Promise<boolean>
      */
     async getId(choice: string)
     {
         if (this.id.length === 0) {
             const commands = await this.commands.getStart(this.sector)
             if (commands) {
-                const chosenSector = commands[parseInt(choice) - 1]
+                const index = parseInt(choice) - 1
+                const chosenSector = commands[index]
+                if (!chosenSector) { return false }
                 const chosenSectorId = chosenSector.id
-
+    
                 this.id.push(chosenSectorId.toString())
-                return
+                this.history.push(chosenSectorId.toString())
+                return true
+            }
+        } else {
+            const commands = await this.commands.getShow(this.id[this.id.length - 1])
+            const dataArray = Array.isArray(commands) ? commands : [commands]
+            for (const item of dataArray) {
+                const index = parseInt(choice) - 1
+                if (item && item.replies && index >= 0 && index < item.replies.length) {
+                    const chosenSector = item.replies[index]
+                    if (chosenSector) {
+                        const chosenSectorId = chosenSector.id
+                        this.id.push(chosenSectorId.toString())
+                        this.history.push(chosenSectorId.toString())
+                        return true
+                    }
+                }
             }
         }
 
-        const commands = await this.commands.getShow(this.id[this.id.length - 1])
-        const dataArray = Array.isArray(commands) ? commands : [commands]
-        dataArray.forEach((item) => {
-            const chosenSector = item?.replies[parseInt(choice) - 1]
-            const chosenSectorId = chosenSector?.id
-            
-            if (chosenSectorId) {
-                this.id.push(chosenSectorId.toString())
-            }
-        })
+        return false
     }
 
     /**
@@ -79,25 +117,38 @@ export default class Operations
     async access(choice: string | undefined)
     {
         if (choice) {
-            await this.getId(choice)
+           const errorMessage = await this.getId(choice)
+           if (!errorMessage) { return this.invalidMessage() }
         }
 
-        const commands = await this.commands.getShow(this.id[this.id.length - 1])
-        const dataArray = Array.isArray(commands) ? commands : [commands]
-        let message = ''
-        dataArray.forEach((item) => {
-            message += `${item?.name}\n`
-            if (item?.replies) {
-                message += `${item?.return}\n\nMais opções:`
-                item.replies.forEach((item, index) => {
-                    message += `\n${index+1}° ${item.name}`
-                })
-            } else {
-                message += `${item?.return}`
-            }
-        })
+        await this.storeCommand()
 
-        return message
+        try {
+            const commands = await this.commands.getShow(this.id[this.id.length - 1])
+
+            const dataArray = Array.isArray(commands) ? commands : [commands]
+            let message = ''
+
+            dataArray.forEach((command) => {
+                if (command) {
+                    message += `Pergunta: ${command.name}`
+                    message += `\nResposta: ${command.return}`
+
+                    if (command.replies && command.replies.length !== 0) {
+                        message += `\n\nMais opções:`
+                        command.replies.forEach((reply, index) => {
+                            message += `\n${index + 1}° ${reply.name}`
+                        })
+                    }
+                }
+            })
+
+            return message
+        } catch (error: any) {
+            if (error.data === undefined) {
+                return this.startMessage()
+            }
+        }
     }
 
 
@@ -110,5 +161,15 @@ export default class Operations
     {
         this.id.pop()
         return this.access(undefined)
+    }
+
+    /**
+     * Retorna o histórico de comandos usados
+     * 
+     * @return String
+     */
+    getHistory()
+    {
+        return this.history
     }
 }

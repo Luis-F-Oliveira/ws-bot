@@ -1,9 +1,11 @@
+import { IUser } from "../class/authenticate"
 import { JSONData } from "../function/openAccountJson"
 import { api } from "./axios"
 
 interface IAuthenticateProps {
     success: boolean
     token: string
+    user: IUser
 }
 
 /**
@@ -22,7 +24,7 @@ export default class AuthenticateService
         return new Promise(async (resolve, reject) => {
             await api.post('login', values)
                 .then((response) => {
-                    resolve({ success: true, token: response.data.token })
+                    resolve({ success: true, token: response.data.token, user: response.data.user })
                 })
                 .catch((error) => {
                     reject(error)
