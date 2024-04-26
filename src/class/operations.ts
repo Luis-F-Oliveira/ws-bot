@@ -2,10 +2,6 @@ import Authenticate, { IUser } from "./authenticate"
 import Command from "./commands"
 import Commit from "./commit"
 
-interface IOperationsParams {
-    sector: string
-}
-
 /**
  * Classe responsável para operações do bot
  */
@@ -18,17 +14,24 @@ export default class Operations
     private user: IUser
     private commit: Commit
 
-    /**
-     * @param params IOperationsParams
-     */
-    constructor(params: IOperationsParams)
+    constructor()
     {
         this.commands = new Command()
         this.commit = new Commit()
-        this.sector = params.sector
+        this.sector = ''
         this.id = []
         this.history = []
         this.user = Authenticate.getInstance().getUser()
+    }
+
+    /**
+     * Salvar o setor escolhido
+     * 
+     * @param sector String
+     */
+    setSector(sector: string)
+    {
+        this.sector = sector
     }
 
     /**
@@ -64,7 +67,16 @@ export default class Operations
      */
     async storeCommand()
     {
-        const data = { user_id: this.user.id, command_id: parseInt(this.id[this.id.length - 1]), sector_id: parseInt(this.sector) }
+        if (this.id.length === 0) { 
+            return 
+        }
+
+        const data = { 
+            user_id: this.user.id, 
+            command_id: parseInt(this.id[this.id.length - 1]), 
+            sector_id: parseInt(this.sector) 
+        }
+        
         await this.commit.store(data)
     }
 
