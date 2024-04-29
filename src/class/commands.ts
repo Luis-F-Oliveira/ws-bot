@@ -52,7 +52,11 @@ export default class Command
      */
     async getIndex()
     {
-        //
+        const response = await this.commands.index()
+
+        if (response.success) {
+            return response.data
+        }
     }
 
     /**

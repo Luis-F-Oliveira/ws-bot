@@ -1,61 +1,91 @@
-import Operations from "./class/operations"
 import Authenticate from "./class/authenticate"
+import Command, { ICommands } from "./class/commands"
+import Sector from "./class/sectors"
 import { openAccountJson } from "./function/openAccountJson"
 import AuthenticateService from "./services/authenticateService"
-import Sector from "./class/sectors"
 const { Client } = require('whatsapp-web.js')
 const qrcode = require('qrcode-terminal')
 
-interface IRecipents {
-    [key: string]: boolean
+class Navigator {
+    private filteredData: ICommands[] = [];
+    public currentStack: { itemIndex: number; replyIndex: number }[] = []
+
+    constructor(private data: ICommands[] | undefined) { }
+
+    filterDataBySectorId(sectorId: number) {
+        if (this.data) {
+            this.filteredData = this.data.filter(item => item.sector_id === sectorId);
+            this.currentStack = [];
+
+            let resultString = '';
+            this.filteredData.forEach((item, index) => {
+                resultString += `${index + 1}. ${item.name}\n`;
+            });
+            return resultString;
+        }
+    }
+
+    selectItem(index: number) {
+        if (index >= 1 && index <= this.filteredData.length) {
+            const itemIndex = index - 1;
+            const currentItem = this.filteredData[itemIndex];
+            let resultString = `${currentItem.name}: ${currentItem.return}\n`;
+            if (currentItem.replies.length > 0) {
+                resultString += `Replies:\n`;
+                currentItem.replies.forEach((reply, index) => {
+                    resultString += `${index + 1}. ${reply.name}\n`;
+                });
+                // Push current state to stack
+                this.currentStack.push({ itemIndex, replyIndex: -1 });
+            }
+            return resultString;
+        }
+        return 'Invalid item index.';
+    }
+
+    selectReply(index: number) {
+        const currentStackItem = this.currentStack[this.currentStack.length - 1];
+        if (!currentStackItem) return 'No replies to select.';
+        const currentItem = this.filteredData[currentStackItem.itemIndex];
+        if (index >= 1 && index <= currentItem.replies.length) {
+            const replyIndex = index - 1;
+            const currentReply = currentItem.replies[replyIndex];
+            let resultString = `${currentReply.name}: ${currentReply.return}\n`;
+            if (currentReply.replies.length > 0) {
+                resultString += `Replies:\n`;
+                currentReply.replies.forEach((reply, index) => {
+                    resultString += `${index + 1}. ${reply.name}\n`;
+                });
+                // Push current state to stack
+                this.currentStack.push({ itemIndex: currentStackItem.itemIndex, replyIndex });
+            }
+            return resultString;
+        }
+        return 'Invalid reply index.';
+    }
+
+    goBack() {
+        // Pop the last state from stack
+        const previousState = this.currentStack.pop();
+        if (previousState) {
+            const currentItem = this.filteredData[previousState.itemIndex];
+            let resultString = `${currentItem.name}: ${currentItem.return}\n`;
+            if (currentItem.replies.length > 0) {
+                resultString += `Replies:\n`;
+                currentItem.replies.forEach((reply, index) => {
+                    resultString += `${index + 1}. ${reply.name}\n`;
+                });
+            }
+            return resultString;
+        }
+        return 'No previous state.';
+    }
 }
 
-/**
- * Classe principal do WSBOT
- */
 class WSBOT {
-    /**
-     * Primeira mensagem exibida ao iniciar uma conversa
-     * 
-     * @return String
-     */
-    welcome()
-    {
-        let welcomeMessage: string = ''
-
-        const data = new Date()
-        const hour = data.getHours()
-
-        if (hour >= 6 && hour < 12) {
-            welcomeMessage = "Bom dia!"
-        } else if (hour >= 12 && hour < 18) {
-            welcomeMessage = "Boa tarde!"
-        } else {
-            welcomeMessage = "Boa noite!"
-        }
-
-        return welcomeMessage = `${welcomeMessage} Eu sou um`
-    }
-
-    /**
-     * Verifica se só contem número
-     * 
-     * @param str String
-     * @returns boolean
-     */
-    checkNumber(str: string) {
-        return /^\d+$/.test(str);
-    }
-
-    /**
-     * Função main, responsável por rodar todo o script do WSBOT
-     */
-    async main() 
-    {
+    async main() {
         const account = await openAccountJson('./json/account.json')
         const authenticateService = new AuthenticateService()
-        const sector = new Sector()
-        const operations = new Operations()
 
         const response = await authenticateService.login(account)
         if (response.success) {
@@ -63,70 +93,74 @@ class WSBOT {
             auth.setToken(response.token)
             auth.setUser(response.user)
         }
-        
-        const client = new Client()
+
+        const sector = new Sector()
         const sectors = await sector.getIndex()
-        
+
+        const command = new Command()
+        const commands = await command.getIndex()
+
+        const client = new Client()
+
         client.on('ready', () => {
             console.log('Client is ready!')
         })
-        
+
         client.on('qr', (qr: string) => {
             qrcode.generate(qr, { small: true })
         })
 
-        const recipients: IRecipents = {};
-        const executedOnce: Record<string, boolean> = {};
-        client.on('message', async (msg: any) => {
-            const sender = msg.from;
-            const message = msg.body;
+        const navigator = new Navigator(commands); // Defina navigator aqui
+
+        client.on('message', async (message: any) => {
+            if (message.fromMe && message.isGroupMsg) {
+                return;
+            };
         
-            // Verifica se a mensagem não veio do próprio bot, é de um contato individual, e não é uma mensagem de grupo
-            if (!msg.fromMe && msg.from.includes('@c.us') && !msg.isGroupMsg) {
-                // Verifica se o remetente já recebeu a mensagem de boas-vindas
-                if (!recipients[sender]) {
-                    client.sendMessage(sender, this.welcome()); // Corrigido aqui
-                    recipients[sender] = true;
-                }
-        
-                // Verifica se a mensagem é um número e ainda não foi processada
-                if (this.checkNumber(message)) { // Corrigido aqui
-                    
-                }
-        
-                // Verifica se o remetente já executou o código para esta mensagem
-                if (!executedOnce[sender]) {
-                    let sectorsMessage = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus orci massa, sagittis at quam eget, sodales tempor augue. Nam sit amet fringilla justo. Cras nec orci posuere, fermentum ligula a, tristique elit. Morbi ultrices scelerisque dui ut porta. Vestibulum tincidunt neque vitae nulla finibus, eu dictum sem pharetra. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae Nunc nec eros gravida, porta purus pharetra, varius augue. Aenean fermentum quis tortor ut scelerisque. Suspendisse pharetra faucibus porta. Sed sed scelerisque nisi. Proin imperdiet in quam a bibendum. Quisque ut gravida magna. \n\n';
-        
-                    const sectors = await sector.getIndex();
-                    if (sectors) {
-                        sectors.forEach((item, index) => {
-                            sectorsMessage += `\n${index+1}° ${item.name}`;
-                        });
-        
-                        let startMessage = await operations.startMessage()
-                        client.sendMessage(sender, sectorsMessage);
-                        client.sendMessage(sender, startMessage);
-        
-                        // Comandos que só devem ser executados uma vez
-                        console.log('Comando que só deve ser executado uma vez');
-        
-                        // Marca como executado para este remetente
-                        executedOnce[sender] = true;
-                    }
-                }
+            if (!sectors) {
+                await message.reply('Os setores não foram carregados. Tente novamente mais tarde.');
+                return;
             }
-        });            
         
-        client.initialize()
-        
-        // let msg = 2
+            if (message.body === '!iniciar') {
+                let sectorList = 'Selecione um setor:\n';
+                sectors.forEach((sector, index) => {
+                    sectorList += `${index + 1}. ${sector.name}\n`;
+                })
 
-        
+                await message.reply(sectorList)
+            } else if (message.body.startsWith('!setor')) {
+                const index = parseInt(message.body.split(' ')[1]);
+                if (index >= 1 && index <= sectors.length) {
+                    const selectedSectorId = sectors[index - 1].id;
+                    const filteredDataString = navigator.filterDataBySectorId(selectedSectorId);
+                    await message.reply(filteredDataString);
+                } else {
+                    await message.reply('Setor selecionado inválido. Tente novamente.');
+                }
+            } else if (message.body.startsWith('!selecionar')) {
+                const index = parseInt(message.body.split(' ')[1]);
+                if (!isNaN(index)) {
+                    const currentStackItem = navigator.currentStack[navigator.currentStack.length - 1];
+                    if (currentStackItem) {
+                        const response = navigator.selectReply(index);
+                        await message.reply(response);
+                    } else {
+                        const response = navigator.selectItem(index);
+                        await message.reply(response);
+                    }
+                } else {
+                    await message.reply('Comando de seleção inválido. Envie "!selecionar {index}" para selecionar um item ou reply.');
+                }
+            } else if (message.body === '!voltar') {
+                const response = navigator.goBack();
+                await message.reply(response);
+            }
+        })
 
-        // const operations = new Operations({ sector: chosenSectorId.toString() })
+        client.initialize();
     }
 }
 
-const bot = new WSBOT()
-bot.main()
+const app = new WSBOT()
+app.main()

@@ -46,6 +46,28 @@ export default class CommandService
     }
 
     /**
+     * Função para coleta de um array com todos os camandos
+     * 
+     * @returns success: boolean, data?: ICommands[]
+     */
+    index(): Promise<CommandServiceProps> 
+    {
+        return new Promise(async (resolve, reject) => {
+            await api.get(`commands`, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            })
+            .then((response) => {
+                resolve({ success: true, data: response.data })
+            })
+            .catch((error) => {
+                reject(error)
+            })
+        })
+    }
+
+    /**
      * Função para coleta de um array especifico e retorno em promise
      * 
      * @param id String
